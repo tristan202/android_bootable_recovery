@@ -91,7 +91,7 @@ void write_recovery_version() {
     if ( is_data_media() ) {
         write_string_to_file("/sdcard/0/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
     }
-    write_string_to_file("/sdcard/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
+    write_string_to_file("/sdcard/0/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
 }
 
 void
@@ -131,7 +131,7 @@ void show_install_update_menu()
                                 "",
                                 NULL
     };
-    
+
     char* install_menu_items[] = {  "choose zip from sdcard",
                                     "install zip from sideload",
                                     "apply /sdcard/update.zip",
@@ -148,7 +148,7 @@ void show_install_update_menu()
         other_sd = "/external_sd/";
         install_menu_items[4] = "choose zip from external sdcard";
     }
-    
+
     for (;;)
     {
         int chosen_item = get_menu_selection(headers, install_menu_items, 0, 0);
@@ -531,11 +531,11 @@ int control_usb_storage_for_lun(Volume* vol, bool enable) {
         const char *lun_file = lun_files[i];
         for(lun_num = 0; lun_num < LUN_FILE_EXPANDS; lun_num++) {
             char formatted_lun_file[255];
-    
+
             // Replace %d with the LUN number
             bzero(formatted_lun_file, 255);
             snprintf(formatted_lun_file, 254, lun_file, lun_num);
-    
+
             // Attempt to use the LUN file
             if (control_usb_storage_set_lun(vol, enable, formatted_lun_file) == 0) {
                 return 0;
@@ -609,14 +609,14 @@ void show_mount_usb_storage_menu()
 int confirm_selection(const char* title, const char* confirm)
 {
     struct stat info;
-    if (0 == stat("/sdcard/clockworkmod/.no_confirm", &info))
+    if (0 == stat("/sdcard/0/clockworkmod/.no_confirm", &info))
         return 1;
 
     char* confirm_headers[]  = {  title, "  THIS CAN NOT BE UNDONE.", "", NULL };
-    int one_confirm = 0 == stat("/sdcard/clockworkmod/.one_confirm", &info);
+    int one_confirm = 0 == stat("/sdcard/0/clockworkmod/.one_confirm", &info);
 #ifdef BOARD_TOUCH_RECOVERY
     one_confirm = 1;
-#endif 
+#endif
     if (one_confirm) {
         char* items[] = { "No",
                         confirm, //" Yes -- wipe partition",   // [1]
@@ -679,7 +679,7 @@ int format_device(const char *device, const char *path, const char *fs_type) {
         }
         return 0;
     }
- 
+
     if (strcmp(v->mount_point, path) != 0) {
         return format_unknown_device(v->blk_device, path, NULL);
     }
@@ -945,7 +945,7 @@ void show_partition_menu()
                     ui_print("Error formatting /data!\n");
                 else
                     ui_print("Done.\n");
-                handle_data_media_format(0);  
+                handle_data_media_format(0);
             }
         }
         else if (chosen_item < mountable_volumes) {
@@ -1020,7 +1020,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
                             "Restore wimax",
                             NULL
     };
-    
+
     if (0 != get_partition_device("wimax", tmp)) {
         // disable wimax restore option
         list[5] = NULL;
@@ -1060,7 +1060,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
 
 static void run_dedupe_gc(const char* other_sd) {
     ensure_path_mounted("/sdcard");
-    nandroid_dedupe_gc("/sdcard/clockworkmod/blobs");
+    nandroid_dedupe_gc("/sdcard/0/clockworkmod/blobs");
     if (other_sd) {
         ensure_path_mounted(other_sd);
         char tmp[PATH_MAX];
@@ -1160,11 +1160,11 @@ void show_nandroid_menu()
                     {
                         struct timeval tp;
                         gettimeofday(&tp, NULL);
-                        sprintf(backup_path, "/sdcard/clockworkmod/backup/%d", tp.tv_sec);
+                        sprintf(backup_path, "/sdcard/0/clockworkmod/backup/%d", tp.tv_sec);
                     }
                     else
                     {
-                        strftime(backup_path, sizeof(backup_path), "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
+                        strftime(backup_path, sizeof(backup_path), "/sdcard/0/clockworkmod/backup/%F.%H.%M.%S", tmp);
                     }
                     nandroid_backup(backup_path);
                     write_recovery_version();
@@ -1314,7 +1314,7 @@ int can_partition(const char* volume) {
         LOGI("Can't partition unsafe device: %s\n", vol->blk_device);
         return 0;
     }
-    
+
     if (strcmp(vol->fs_type, "vfat") != 0) {
         LOGI("Can't partition non-vfat: %s\n", vol->fs_type);
         return 0;
@@ -1487,13 +1487,13 @@ int bml_check_volume(const char *path) {
         ensure_path_unmounted(path);
         return 0;
     }
-    
+
     Volume *vol = volume_for_path(path);
     if (vol == NULL) {
         LOGE("Unable process volume! Skipping...\n");
         return 0;
     }
-    
+
     ui_print("%s may be rfs. Checking...\n", path);
     char tmp[PATH_MAX];
     sprintf(tmp, "mount -t rfs %s %s", vol->blk_device, path);
@@ -1522,19 +1522,19 @@ void process_volumes() {
     if (has_datadata())
         ret |= bml_check_volume("/datadata");
     ret |= bml_check_volume("/cache");
-    
+
     if (ret == 0) {
         ui_print("Done!\n");
         return;
     }
-    
+
     char backup_path[PATH_MAX];
     time_t t = time(NULL);
     char backup_name[PATH_MAX];
     struct timeval tp;
     gettimeofday(&tp, NULL);
     sprintf(backup_name, "before-ext4-convert-%d", tp.tv_sec);
-    sprintf(backup_path, "/sdcard/clockworkmod/backup/%s", backup_name);
+    sprintf(backup_path, "/sdcard/0/clockworkmod/backup/%s", backup_name);
 
     ui_set_show_text(1);
     ui_print("Filesystems need to be converted to ext4.\n");
@@ -1554,9 +1554,9 @@ void handle_failure(int ret)
         return;
     if (0 != ensure_path_mounted("/sdcard"))
         return;
-    mkdir("/sdcard/clockworkmod", S_IRWXU | S_IRWXG | S_IRWXO);
-    __system("cp /tmp/recovery.log /sdcard/clockworkmod/recovery.log");
-    ui_print("/tmp/recovery.log was copied to /sdcard/clockworkmod/recovery.log. Please open ROM Manager to report the issue.\n");
+    mkdir("/sdcard/0/clockworkmod", S_IRWXU | S_IRWXG | S_IRWXO);
+    __system("cp /tmp/recovery.log /sdcard/0/clockworkmod/recovery.log");
+    ui_print("/tmp/recovery.log was copied to /sdcard/0/clockworkmod/recovery.log. Please open ROM Manager to report the issue.\n");
 }
 
 int is_path_mounted(const char* path) {
